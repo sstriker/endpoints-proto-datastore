@@ -1270,7 +1270,7 @@ class EndpointsModel(ndb.Model):
     if response_message is None:
       kwargs[RESPONSE_MESSAGE] = cls.ProtoModel(fields=response_fields)
 
-    endpoints_method_decorator = kwargs.pop("_method_decorator", endpoints.method)
+    endpoints_method_decorator = kwargs.pop('_method_decorator', endpoints.method)
     apiserving_method_decorator = endpoints_method_decorator(**kwargs)
 
     def RequestToEntityDecorator(api_method):
@@ -1441,7 +1441,7 @@ class EndpointsModel(ndb.Model):
                         'Received %s.' % (kwargs[HTTP_METHOD],))
     kwargs[HTTP_METHOD] = QUERY_HTTP_METHOD
 
-    endpoints_method_decorator = kwargs.pop("_method_decorator", endpoints.method)
+    endpoints_method_decorator = kwargs.pop('_method_decorator', endpoints.method)
     apiserving_method_decorator = endpoints_method_decorator(**kwargs)
 
     def RequestToQueryDecorator(api_method):
