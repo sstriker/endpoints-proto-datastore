@@ -72,6 +72,14 @@ To use this library in your App Engine application you can
 
 To install App Engine visit the [Development Environment][9] page.
 
+## Features, Questions and Support
+
+-   To request a feature, report a bug, or request a new sample or piece of
+    documentation; please [file an issue][13].
+-   For troubleshooting issues or asking general questions, please
+    [ask a question][12] on StackOverflow using the `endpoints-proto-datastore`
+    tag.
+
 ## Testing
 
 All tests are wrapped into the [`endpoints_proto_datastore_test_runner.py`][10]
@@ -97,6 +105,8 @@ dirname `readlink \`which dev_appserver.py\``
 ## Licensing
 
 - See [LICENSE][5]
+- **Note**: The test runner includes some code from the Twisted project, which
+  is [listed under terms other than Apache 2.0][11].
 
 [1]: https://endpoints-proto-datastore.googlecode.com/files/endpoints_proto_datastore.zip
 [2]: http://git-scm.com/book/en/Git-Tools-Submodules
@@ -108,3 +118,6 @@ dirname `readlink \`which dev_appserver.py\``
 [8]: https://developers.google.com/appengine/docs/python/tools/appengineconfig
 [9]: https://developers.google.com/appengine/docs/python/gettingstartedpython27/devenvironment
 [10]: https://github.com/GoogleCloudPlatform/endpoints-proto-datastore/blob/master/endpoints_proto_datastore/endpoints_proto_datastore_test_runner.py
+[11]: http://twistedmatrix.com/trac/browser/trunk/LICENSE
+[12]: http://stackoverflow.com/questions/ask?tags=endpoints-proto-datastore
+[13]: https://github.com/GoogleCloudPlatform/endpoints-proto-datastore/issues/new
