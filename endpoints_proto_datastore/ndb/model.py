@@ -1246,8 +1246,6 @@ class EndpointsModel(ndb.Model):
           message class. Defaults to None.
       user_required: Boolean; indicates whether or not a user is required on any
           incoming request.
-      _method_decorator: An (optional) endpoints.method like decorator-producing
-          function, which will be used instead of endpoints.method.
 
     Returns:
       A decorator that takes the metadata passed in and augments an API method.
@@ -1270,8 +1268,7 @@ class EndpointsModel(ndb.Model):
     if response_message is None:
       kwargs[RESPONSE_MESSAGE] = cls.ProtoModel(fields=response_fields)
 
-    endpoints_method_decorator = kwargs.pop('_method_decorator', endpoints.method)
-    apiserving_method_decorator = endpoints_method_decorator(**kwargs)
+    apiserving_method_decorator = endpoints.method(**kwargs)
 
     def RequestToEntityDecorator(api_method):
       """A decorator that uses the metadata passed to the enclosing method.
@@ -1407,8 +1404,6 @@ class EndpointsModel(ndb.Model):
           indexed, so this should be used with care. However, when used
           correctly, this will speed up queries, reduce payload size and even
           reduce cost at times.
-      _method_decorator: An (optional) endpoints.method like decorator-producing
-          function, which will be used instead of endpoints.method.
 
     Returns:
       A decorator that takes the metadata passed in and augments an API query
@@ -1441,8 +1436,7 @@ class EndpointsModel(ndb.Model):
                         'Received %s.' % (kwargs[HTTP_METHOD],))
     kwargs[HTTP_METHOD] = QUERY_HTTP_METHOD
 
-    endpoints_method_decorator = kwargs.pop('_method_decorator', endpoints.method)
-    apiserving_method_decorator = endpoints_method_decorator(**kwargs)
+    apiserving_method_decorator = endpoints.method(**kwargs)
 
     def RequestToQueryDecorator(api_method):
       """A decorator that uses the metadata passed to the enclosing method.
