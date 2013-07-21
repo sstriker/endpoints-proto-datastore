@@ -181,6 +181,7 @@ class _EndpointsQueryInfo(object):
     _ancestor: An ndb Key to be used as an ancestor for a query.
     _cursor: A datastore_query.Cursor, to be used for resuming a query.
     _limit: A positive integer, to be used in a fetch.
+    _offset: A positive integer, to be used in a fetch.
     _order: String; comma separated list of property names or property names
         preceded by a minus sign. Used to define an order of query results.
     _order_attrs: The attributes (or negation of attributes) parsed from
@@ -210,6 +211,7 @@ class _EndpointsQueryInfo(object):
     self._ancestor = None
     self._cursor = None
     self._limit = None
+    self._offset = None
     self._order = None
     self._order_attrs = ()
 
@@ -364,6 +366,32 @@ class _EndpointsQueryInfo(object):
     self._limit = value
 
   limit = property(fget=_GetLimit, fset=_SetLimit)
+
+  def _GetOffset(self):
+    """Getter to be used for public offset property on query info."""
+    return self._offset
+
+  def _SetOffset(self, value):
+    """Setter to be used for public offset property on query info.
+
+    Args:
+      value: A potential value for a offset.
+
+    Raises:
+      AttributeError: if query on the object is already final.
+      AttributeError: if the offset has already been set.
+      TypeError: if the value to be set is not a positive integer.
+    """
+    if self._query_final is not None:
+      raise AttributeError('Can\'t set offset. Query info is final.')
+
+    if self._offset is not None:
+      raise AttributeError('Offset can\'t be set twice.')
+    if not isinstance(value, (int, long)) or value < 0:
+      raise TypeError('Offset must be a positive integer.')
+    self._offset = value
+
+  offset = property(fget=_GetOffset, fset=_SetOffset)
 
   def _GetOrder(self):
     """Getter to be used for public order property on query info."""
@@ -829,6 +857,28 @@ class EndpointsModel(ndb.Model):
       The integer (or null) limit from the query info on the entity.
     """
     return self._endpoints_query_info.limit
+
+  def OffsetSet(self, value):
+    """Setter to be used for default offset EndpointsAliasProperty.
+
+    Simply sets the offset on the entity's query info object, and the query
+    info object handles validation.
+
+    Args:
+      value: The offset value to be set.
+    """
+    self._endpoints_query_info.offset = value
+
+  @EndpointsAliasProperty(setter=OffsetSet, property_type=messages.IntegerField)
+  def offset(self):
+    """Getter to be used for default offset EndpointsAliasProperty.
+
+    Uses the ProtoRPC property_type IntegerField since an offset.
+
+    Returns:
+      The integer (or null) offset from the query info on the entity.
+    """
+    return self._endpoints_query_info.offset
 
   def OrderSet(self, value):
     """Setter to be used for default order EndpointsAliasProperty.
@@ -1376,6 +1426,8 @@ class EndpointsModel(ndb.Model):
     customizing queries:
       limit: allows a limit to be passed in and augment the query info on the
           deserialized entity.
+      offset: allows an offset to be passed in and augment the query info on the
+          deserialized entity.
       order: allows an order to be passed in and augment the query info on the
           deserialized entity.
       pageToken: allows a websafe string value to be converted to a cursor and
@@ -1494,7 +1546,10 @@ class EndpointsModel(ndb.Model):
           raise endpoints.ForbiddenException(
               QUERY_MAX_EXCEEDED_TEMPLATE % (request_limit, limit_max))
 
-        query_options = {'start_cursor': query_info.cursor}
+        query_options = {
+          'start_cursor': query_info.cursor,
+          'offset': query_info.offset
+        }
         if use_projection:
           projection = [value for value in collection_fields
                         if value in cls._properties]
