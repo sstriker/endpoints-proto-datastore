@@ -181,7 +181,7 @@ class _EndpointsQueryInfo(object):
     _ancestor: An ndb Key to be used as an ancestor for a query.
     _cursor: A datastore_query.Cursor, to be used for resuming a query.
     _limit: A positive integer, to be used in a fetch.
-    _offset: A positive integer, to be used in a fetch.
+    _offset: A non-negative integer, to be used in a fetch.
     _order: String; comma separated list of property names or property names
         preceded by a minus sign. Used to define an order of query results.
     _order_attrs: The attributes (or negation of attributes) parsed from
@@ -335,6 +335,8 @@ class _EndpointsQueryInfo(object):
 
     if self._cursor is not None:
       raise AttributeError('Cursor can\'t be set twice.')
+    if self._offset is not None:
+      raise AttributeError('Cursor can\'t be set.  Cursor and offset are mutually exclusive.')
     if not isinstance(value, datastore_query.Cursor):
       raise TypeError('Cursor must be an instance of datastore_query.Cursor.')
     self._cursor = value
@@ -387,8 +389,10 @@ class _EndpointsQueryInfo(object):
 
     if self._offset is not None:
       raise AttributeError('Offset can\'t be set twice.')
+    if self._cursor is not None:
+      raise AttributeError('Offset can\'t be set.  Offset and cursor are mutually exclusive.')
     if not isinstance(value, (int, long)) or value < 0:
-      raise TypeError('Offset must be a positive integer.')
+      raise TypeError('Offset must be a non-negative integer.')
     self._offset = value
 
   offset = property(fget=_GetOffset, fset=_SetOffset)
