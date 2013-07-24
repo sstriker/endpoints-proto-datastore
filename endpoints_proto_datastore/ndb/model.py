@@ -327,6 +327,8 @@ class _EndpointsQueryInfo(object):
     Raises:
       AttributeError: if query on the object is already final.
       AttributeError: if the cursor has already been set.
+      AttributeError: if the offset has already been set; cursor and offset
+          are mutually exclusive.
       TypeError: if the value to be set is not an instance of
           datastore_query.Cursor.
     """
@@ -382,6 +384,8 @@ class _EndpointsQueryInfo(object):
     Raises:
       AttributeError: if query on the object is already final.
       AttributeError: if the offset has already been set.
+      AttributeError: if the cursor has already been set; offset and cursor
+          are mutually exclusive.
       TypeError: if the value to be set is not a positive integer.
     """
     if self._query_final is not None:
