@@ -1100,6 +1100,7 @@ class EndpointsModel(ndb.Model):
     message_fields = {
         'items': messages.MessageField(proto_model, 1, repeated=True),
         'nextPageToken': messages.StringField(2),
+        'count': messages.IntegerField(3),
         # TODO(dhermes): This behavior should be regulated more directly.
         #                This is to make sure the schema name in the discovery
         #                document is message_fields_schema.collection_name
@@ -1228,7 +1229,7 @@ class EndpointsModel(ndb.Model):
 
   @classmethod
   def ToMessageCollection(cls, items, collection_fields=None,
-                          next_cursor=None):
+                          next_cursor=None, count=None):
     """Converts a list of entities and cursor to ProtoRPC (collection) message.
 
     Uses the fields list to create a ProtoRPC (collection) message class and
@@ -1257,6 +1258,9 @@ class EndpointsModel(ndb.Model):
 
     if next_cursor is not None:
       result.nextPageToken = next_cursor.to_websafe_string()
+
+    if count is not None:
+      result.count = count;
 
     return result
 
@@ -1564,6 +1568,7 @@ class EndpointsModel(ndb.Model):
           query_options['projection'] = projection
         items, next_cursor, more_results = query.fetch_page(
             request_limit, **query_options)
+        count = None
 
         # Don't pass a cursor if there are no more results
         if not more_results:
@@ -1571,7 +1576,8 @@ class EndpointsModel(ndb.Model):
 
         return cls.ToMessageCollection(items,
                                        collection_fields=collection_fields,
-                                       next_cursor=next_cursor)
+                                       next_cursor=next_cursor,
+                                       count=count)
 
       return apiserving_method_decorator(QueryFromRequestMethod)
 
