@@ -1519,6 +1519,7 @@ class EndpointsModel(ndb.Model):
             back to a ProtoRPC (collection) message.
       """
 
+      @ndb.synctasklet
       @functools.wraps(api_method)
       def QueryFromRequestMethod(service_instance, request):
         """Stub method to be decorated.
@@ -1566,7 +1567,7 @@ class EndpointsModel(ndb.Model):
           projection = [value for value in collection_fields
                         if value in cls._properties]
           query_options['projection'] = projection
-        items, next_cursor, more_results = query.fetch_page(
+        items, next_cursor, more_results = yield query.fetch_page_async(
             request_limit, **query_options)
         count = None
 
@@ -1574,10 +1575,10 @@ class EndpointsModel(ndb.Model):
         if not more_results:
           next_cursor = None
 
-        return cls.ToMessageCollection(items,
-                                       collection_fields=collection_fields,
-                                       next_cursor=next_cursor,
-                                       count=count)
+        raise ndb.Return(cls.ToMessageCollection(items,
+                                                 collection_fields=collection_fields,
+                                                 next_cursor=next_cursor,
+                                                 count=count))
 
       return apiserving_method_decorator(QueryFromRequestMethod)
 
