@@ -181,7 +181,7 @@ class _EndpointsQueryInfo(object):
     _ancestor: An ndb Key to be used as an ancestor for a query.
     _cursor: A datastore_query.Cursor, to be used for resuming a query.
     _limit: A positive integer, to be used in a fetch.
-    _offset: A positive integer, to be used in a fetch.
+    _offset: A non-negative integer, to be used in a fetch.
     _order: String; comma separated list of property names or property names
         preceded by a minus sign. Used to define an order of query results.
     _order_attrs: The attributes (or negation of attributes) parsed from
@@ -327,6 +327,8 @@ class _EndpointsQueryInfo(object):
     Raises:
       AttributeError: if query on the object is already final.
       AttributeError: if the cursor has already been set.
+      AttributeError: if the offset has already been set; cursor and offset
+          are mutually exclusive.
       TypeError: if the value to be set is not an instance of
           datastore_query.Cursor.
     """
@@ -335,6 +337,8 @@ class _EndpointsQueryInfo(object):
 
     if self._cursor is not None:
       raise AttributeError('Cursor can\'t be set twice.')
+    if self._offset is not None:
+      raise AttributeError('Cursor can\'t be set.  Cursor and offset are mutually exclusive.')
     if not isinstance(value, datastore_query.Cursor):
       raise TypeError('Cursor must be an instance of datastore_query.Cursor.')
     self._cursor = value
@@ -380,6 +384,8 @@ class _EndpointsQueryInfo(object):
     Raises:
       AttributeError: if query on the object is already final.
       AttributeError: if the offset has already been set.
+      AttributeError: if the cursor has already been set; offset and cursor
+          are mutually exclusive.
       TypeError: if the value to be set is not a positive integer.
     """
     if self._query_final is not None:
@@ -387,8 +393,10 @@ class _EndpointsQueryInfo(object):
 
     if self._offset is not None:
       raise AttributeError('Offset can\'t be set twice.')
+    if self._cursor is not None:
+      raise AttributeError('Offset can\'t be set.  Offset and cursor are mutually exclusive.')
     if not isinstance(value, (int, long)) or value < 0:
-      raise TypeError('Offset must be a positive integer.')
+      raise TypeError('Offset must be a non-negative integer.')
     self._offset = value
 
   offset = property(fget=_GetOffset, fset=_SetOffset)
@@ -1092,6 +1100,7 @@ class EndpointsModel(ndb.Model):
     message_fields = {
         'items': messages.MessageField(proto_model, 1, repeated=True),
         'nextPageToken': messages.StringField(2),
+        'count': messages.IntegerField(3),
         # TODO(dhermes): This behavior should be regulated more directly.
         #                This is to make sure the schema name in the discovery
         #                document is message_fields_schema.collection_name
@@ -1220,7 +1229,7 @@ class EndpointsModel(ndb.Model):
 
   @classmethod
   def ToMessageCollection(cls, items, collection_fields=None,
-                          next_cursor=None):
+                          next_cursor=None, count=None):
     """Converts a list of entities and cursor to ProtoRPC (collection) message.
 
     Uses the fields list to create a ProtoRPC (collection) message class and
@@ -1249,6 +1258,9 @@ class EndpointsModel(ndb.Model):
 
     if next_cursor is not None:
       result.nextPageToken = next_cursor.to_websafe_string()
+
+    if count is not None:
+      result.count = count;
 
     return result
 
@@ -1507,6 +1519,7 @@ class EndpointsModel(ndb.Model):
             back to a ProtoRPC (collection) message.
       """
 
+      @ndb.synctasklet
       @functools.wraps(api_method)
       def QueryFromRequestMethod(service_instance, request):
         """Stub method to be decorated.
@@ -1547,23 +1560,25 @@ class EndpointsModel(ndb.Model):
               QUERY_MAX_EXCEEDED_TEMPLATE % (request_limit, limit_max))
 
         query_options = {
-          'start_cursor': query_info.cursor,
-          'offset': query_info.offset
+            'start_cursor': query_info.cursor,
+            'offset': query_info.offset
         }
         if use_projection:
           projection = [value for value in collection_fields
                         if value in cls._properties]
           query_options['projection'] = projection
-        items, next_cursor, more_results = query.fetch_page(
+        items, next_cursor, more_results = yield query.fetch_page_async(
             request_limit, **query_options)
+        count = None
 
         # Don't pass a cursor if there are no more results
         if not more_results:
           next_cursor = None
 
-        return cls.ToMessageCollection(items,
-                                       collection_fields=collection_fields,
-                                       next_cursor=next_cursor)
+        raise ndb.Return(cls.ToMessageCollection(items,
+                                                 collection_fields=collection_fields,
+                                                 next_cursor=next_cursor,
+                                                 count=count))
 
       return apiserving_method_decorator(QueryFromRequestMethod)
 
